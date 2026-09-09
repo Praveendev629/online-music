@@ -135,17 +135,34 @@ function App() {
     setIsPlaying(true)
   }
 
-  const handleDownload = (video: Video) => {
-    const downloadUrl = `${API_BASE_URL}/api/download/${video.id}?title=${encodeURIComponent(video.title)}`
-    const a = document.createElement('a')
-    a.href = downloadUrl
-    a.target = '_blank'
-    a.download = `${video.title}.mp3`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+  const handleDownload = async (video: Video) => {
+    if (downloadingIds.has(video.id)) return
+    setDownloadingIds(prev => new Set(prev).add(video.id))
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/download/${video.id}?title=${encodeURIComponent(video.title)}`)
+      if (!response.ok) throw new Error('Download failed')
 
-    setDownloadedIds(prev => new Set(prev).add(video.id))
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = downloadUrl
+      const filename = `${video.title.replace(/[/\\?%*:|"<>]/g, '_')}.mp3`
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(downloadUrl)
+
+      setDownloadedIds(prev => new Set(prev).add(video.id))
+    } catch (err) {
+      console.error('Download error:', err)
+    } finally {
+      setDownloadingIds(prev => {
+        const next = new Set(prev)
+        next.delete(video.id)
+        return next
+      })
+    }
   }
 
   const toggleLike = (video: Video) => {

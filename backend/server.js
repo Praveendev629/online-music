@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import https from 'https';
 import ytSearch from 'yt-search';
 
 const execAsync = promisify(exec);
@@ -93,8 +92,20 @@ app.get('/api/stream/:videoId', async (req, res) => {
 app.get('/api/download/:videoId', async (req, res) => {
   try {
     const { videoId } = req.params;
+    const title = (req.query.title || 'track').toString();
     const streamUrl = await getAudioStreamUrl(videoId);
-    res.redirect(302, streamUrl);
+
+    const safeTitle = title.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeTitle)}.mp3"`);
+
+    const audioRes = await fetch(streamUrl);
+    if (!audioRes.ok) {
+      throw new Error(`Failed to fetch audio stream: ${audioRes.statusText}`);
+    }
+
+    const arrayBuffer = await audioRes.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
   } catch (error) {
     console.error('Download error:', error);
     if (!res.headersSent) {
