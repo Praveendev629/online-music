@@ -46345,7 +46345,7 @@ var require_mysql2 = __commonJS({
   }
 });
 
-// api/index.ts
+// server/api/index.ts
 var import_express = __toESM(require_express2(), 1);
 
 // node_modules/.pnpm/@trpc+server@11.18.0_typescript@5.9.3/node_modules/@trpc/server/dist/codes-DagpWZLc.mjs
@@ -73426,7 +73426,7 @@ async function createContext(opts) {
   };
 }
 
-// api/index.ts
+// server/api/index.ts
 var app = (0, import_express.default)();
 app.use(import_express.default.json({ limit: "2mb" }));
 app.use(import_express.default.urlencoded({ limit: "2mb", extended: true }));
