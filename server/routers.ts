@@ -1,5 +1,6 @@
 import { COOKIE_NAME } from "@shared/const";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
@@ -21,10 +22,21 @@ export const appRouter = router({
   youtube: router({
     search: publicProcedure
       .input(z.object({ query: z.string().trim().min(1).max(120) }))
-      .mutation(async ({ input }) => ({
-        query: input.query,
-        results: await scrapeYouTubeSearch(input.query),
-      })),
+      .mutation(async ({ input }) => {
+        try {
+          const results = await scrapeYouTubeSearch(input.query);
+          return {
+            query: input.query,
+            results,
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to search YouTube";
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message,
+          });
+        }
+      }),
   }),
 });
 
