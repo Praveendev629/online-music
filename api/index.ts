@@ -49,8 +49,13 @@ app.use((_req, res) => {
 });
 
 // Export as both default and handler for Vercel
-export default (req: IncomingMessage, res: ServerResponse) => {
-  return app(req as any, res as any);
+export default async (req: IncomingMessage, res: ServerResponse) => {
+  return new Promise<void>((resolve, reject) => {
+    app(req as any, res as any, (err?: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
 };
 
 export { app };
