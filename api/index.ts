@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from "http";
 import express from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../server/routers";
@@ -25,7 +26,7 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "soundwave-api" });
 });
 
-// tRPC endpoint - handle both paths that Vercel might send
+// tRPC endpoint - handle multiple path variations
 app.use(
   "/trpc",
   createExpressMiddleware({
@@ -34,7 +35,6 @@ app.use(
   }),
 );
 
-// Fallback for requests with /api/trpc (direct requests, not Vercel rewrite)
 app.use(
   "/api/trpc",
   createExpressMiddleware({
@@ -48,4 +48,9 @@ app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-export default app;
+// Export as both default and handler for Vercel
+export default (req: IncomingMessage, res: ServerResponse) => {
+  return app(req as any, res as any);
+};
+
+export { app };
