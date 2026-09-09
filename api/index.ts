@@ -7,6 +7,22 @@ const app = express();
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ limit: "2mb", extended: true }));
+
+// Health check endpoint
+app.get("/health", (_req, res) => {
+  res.json({ ok: true, service: "soundwave-api" });
+});
+
+// tRPC endpoint - Vercel passes /trpc when /api/trpc is requested
+app.use(
+  "/trpc",
+  createExpressMiddleware({
+    router: appRouter,
+    createContext,
+  }),
+);
+
+// Fallback for /api/trpc path (in case Vercel routing includes /api)
 app.use(
   "/api/trpc",
   createExpressMiddleware({
@@ -14,9 +30,5 @@ app.use(
     createContext,
   }),
 );
-
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "soundwave-api" });
-});
 
 export default app;
