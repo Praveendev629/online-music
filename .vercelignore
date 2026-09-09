@@ -1,2 +1,0 @@
-# Ignore TypeScript source, only deploy compiled JS
-api/index.ts
