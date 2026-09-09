@@ -46293,11 +46293,11 @@ var require_mysql2 = __commonJS({
     exports2.createQuery = Connection.createQuery;
     exports2.Pool = Pool;
     exports2.PoolCluster = PoolCluster;
-    exports2.createServer = function(handler) {
+    exports2.createServer = function(handler2) {
       const Server = require_server();
       const s = new Server();
-      if (handler) {
-        s.on("connection", handler);
+      if (handler2) {
+        s.on("connection", handler2);
       }
       return s;
     };
@@ -46344,8 +46344,7 @@ var require_mysql2 = __commonJS({
 // server/api/index.ts
 var index_exports = {};
 __export(index_exports, {
-  app: () => app,
-  default: () => index_default
+  default: () => handler
 });
 module.exports = __toCommonJS(index_exports);
 var import_express = __toESM(require_express2(), 1);
@@ -47180,17 +47179,17 @@ var handlers = [
   octetStreamContentTypeHandler
 ];
 function getContentTypeHandler(req) {
-  const handler = handlers.find((handler$1) => handler$1.isMatch(req));
-  if (handler) return handler;
-  if (!handler && req.method === "GET") return jsonContentTypeHandler;
+  const handler2 = handlers.find((handler$1) => handler$1.isMatch(req));
+  if (handler2) return handler2;
+  if (!handler2 && req.method === "GET") return jsonContentTypeHandler;
   throw new TRPCError({
     code: "UNSUPPORTED_MEDIA_TYPE",
     message: req.headers.has("content-type") ? `Unsupported content-type "${req.headers.get("content-type")}` : "Missing content-type header"
   });
 }
 async function getRequestInfo(opts) {
-  const handler = getContentTypeHandler(opts.req);
-  return await handler.parse(opts);
+  const handler2 = getContentTypeHandler(opts.req);
+  return await handler2.parse(opts);
 }
 function isAbortError(error46) {
   return isObject(error46) && error46["name"] === "AbortError";
@@ -73455,13 +73454,9 @@ app.use("/api/trpc", createExpressMiddleware({
 app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });
-var index_default = (req, res) => {
+function handler(req, res) {
   app(req, res);
-};
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
-  app
-});
+}
 /*! Bundled license information:
 
 depd/index.js:

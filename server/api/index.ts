@@ -25,13 +25,12 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-// tRPC routes - Vercel rewrites /api/trpc to /trpc in the function
+// tRPC routes
 app.use("/trpc", createExpressMiddleware({
   router: appRouter,
   createContext,
 }));
 
-// Also support /api/trpc for direct calls
 app.use("/api/trpc", createExpressMiddleware({
   router: appRouter,
   createContext,
@@ -42,9 +41,7 @@ app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-// Vercel handler
-export default (req: IncomingMessage, res: ServerResponse) => {
+// Vercel serverless function handler
+export default function handler(req: IncomingMessage, res: ServerResponse) {
   app(req as any, res as any);
-};
-
-export { app };
+}
