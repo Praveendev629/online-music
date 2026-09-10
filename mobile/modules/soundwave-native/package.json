@@ -1,0 +1,12 @@
+{
+  "name": "soundwave-native",
+  "version": "0.1.0",
+  "description": "On-device YouTube audio extraction engine (yt-dlp wrapper) for SoundWave.",
+  "main": "index.ts",
+  "types": "index.ts",
+  "license": "MIT",
+  "private": true,
+  "peerDependencies": {
+    "expo": "*"
+  }
+}

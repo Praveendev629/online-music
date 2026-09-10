@@ -1,0 +1,14 @@
+.DS_Store
+*.log
+.env
+node_modules/
+.expo/
+dist/
+backend/.env
+backend/node_modules/
+backend/stream-cache.json
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/android/
+mobile/ios/

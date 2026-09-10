@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "SoundWave",
+    "slug": "soundwave",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#141020"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.praveen.soundwave"
+    },
+    "android": {
+      "package": "com.praveen.soundwave",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#141020"
+      },
+      "permissions": [
+        "INTERNET",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
+    },
+    "plugins": [
+      "expo-font",
+      "./modules/soundwave-native/app.plugin.js",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "abiFilters": [
+              "x86",
+              "x86_64",
+              "armeabi-v7a",
+              "arm64-v8a"
+            ]
+          }
+        }
+      ]
+    ]
+  }
+}

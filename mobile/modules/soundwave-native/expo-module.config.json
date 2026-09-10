@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["SoundWaveModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.soundwavenative.SoundWaveModule"]
+  }
+}
