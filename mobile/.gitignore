@@ -9,5 +9,7 @@ web-build/
 *.key
 *.mobileprovision
 store.json
+.env
+.env.local
 /android
 /ios

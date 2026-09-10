@@ -2,7 +2,7 @@ import { Audio } from 'expo-av';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { searchVideos } from '../api/client';
-import { getDownloadUrl, getStreamUrl } from '../extractor';
+import { configureNativeCookies, getDownloadUrl, getStreamUrl, warmUpNative } from '../extractor';
 import { colors } from '../theme';
 import { downloadTrack, getDownloads, getLikes, removeDownload, saveLikes } from '../storage';
 import type { DownloadedTrack, Video } from '../types';
@@ -34,6 +34,10 @@ export function Home() {
     Audio.setAudioModeAsync({ staysActiveInBackground: true, playsInSilentModeIOS: true });
     getLikes().then(arr => setLikes(new Set(arr)));
     getDownloads().then(setDownloads);
+    // Extract bundled Python/yt-dlp + refresh to latest STABLE up front so the
+    // first search/playback isn't slow and survives YouTube's bot checks.
+    // Cookies (if provided) must land before the warm-up runs.
+    configureNativeCookies().then(() => warmUpNative());
     return () => {
       soundRef.current?.unloadAsync().catch(() => undefined);
     };
@@ -82,7 +86,8 @@ export function Home() {
         }
       } catch (error) {
         console.error('Playback error:', error);
-        setPlaybackError('Failed to load audio for this song.');
+        const detail = error instanceof Error ? error.message : String(error);
+        setPlaybackError(detail ? `Failed to play: ${detail.slice(0, 240)}` : 'Failed to load audio for this song.');
       } finally {
         setIsLoading(false);
       }
@@ -173,7 +178,8 @@ export function Home() {
         setDownloads(prev => [track, ...prev.filter(t => t.id !== track.id)]);
       } catch (error) {
         console.error('Download error:', error);
-        setPlaybackError('Download failed for this song.');
+        const detail = error instanceof Error ? error.message : String(error);
+        setPlaybackError(detail ? `Download failed: ${detail.slice(0, 240)}` : 'Download failed for this song.');
       }
     },
     []

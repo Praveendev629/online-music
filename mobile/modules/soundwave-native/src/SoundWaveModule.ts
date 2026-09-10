@@ -3,6 +3,8 @@ import { NativeModule, requireOptionalNativeModule } from 'expo';
 import type { SearchResult, SoundWaveModuleEvents } from './SoundWave.types';
 
 declare class SoundWaveModule extends NativeModule<SoundWaveModuleEvents> {
+  warmUp(): Promise<boolean>;
+  setCookies(cookies: string): Promise<boolean>;
   extractAudio(videoId: string): Promise<string>;
   search(query: string): Promise<SearchResult[]>;
 }
