@@ -6,31 +6,33 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.json.JSONObject
 import java.io.File
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 class SoundWaveModule : Module() {
   private val processCounter = AtomicLong(0)
   private var cookiesFilePath: String? = null
 
+  // Dedicated workers so slow or hung yt-dlp processes never block the JS
+  // bridge's serial queue (which would make the app look frozen on "searching").
+  private val worker = Executors.newFixedThreadPool(2)
+
   override fun definition() = ModuleDefinition {
     Name("SoundWave")
 
-    // One-time init (extracts bundled Python + yt-dlp) and best-effort refresh of
-    // yt-dlp to the latest STABLE build so current YouTube bot-protection keeps working.
+    // Cheap warm-up: extract the bundled Python + yt-dlp binaries once, in the
+    // background. Does NOT download anything, so it can never stall a search.
     AsyncFunction("warmUp") {
-      ensureInitialized()
-      try {
-        YoutubeDL.updateYoutubeDL(currentContext(), YoutubeDL.UpdateChannel.STABLE)
-      } catch (e: Throwable) {
-        // non-fatal: the bundled binary still works if the update fails
+      runOnWorker {
+        runCatching { ensureInitialized() }
       }
       true
     }
 
-    // Stores a Netscape-format cookies.txt (the content of your YOUTUBE_COOKIE)
-    // to app storage and passes `--cookies` to every yt-dlp call afterwards,
-    // letting a signed-in YouTube session bypass the bot checks.
-    // Pass null/blank to disable cookie usage.
+    // Stores a Netscape-format cookies.txt and passes `--cookies` to every call.
     AsyncFunction("setCookies") { cookies: String? ->
       if (cookies.isNullOrBlank()) {
         cookiesFilePath = null
@@ -43,18 +45,40 @@ class SoundWaveModule : Module() {
       }
     }
 
-    // Returns a directly playable stream URL for the given YouTube id.
-    // Tries in order: m4a audio (ExoPlayer-safe) -> best audio -> mp4 video
-    // (always playable as a last resort).
+    // Returns a directly playable stream URL. Tries m4a audio -> best audio ->
+    // mp4 video (mp4 is always playable by ExoPlayer).
     AsyncFunction("extractAudio") { videoId: String ->
-      ensureInitialized()
-      extractAudioUrl(videoId)
+      runOnWorker {
+        ensureInitialized()
+        extractAudioUrl(videoId)
+      }
     }
 
     // Searches YouTube; returns the same shape as the hosted /api/search endpoint.
     AsyncFunction("search") { query: String ->
-      ensureInitialized()
-      searchVideos(query)
+      runOnWorker {
+        ensureInitialized()
+        searchVideos(query)
+      }
+    }
+
+    // Optional manual refresh of the bundled yt-dlp to the latest STABLE build.
+    // Not called automatically — only helps if playback starts being blocked.
+    AsyncFunction("updateYtDlp") {
+      runOnWorker {
+        ensureInitialized()
+        YoutubeDL.updateYoutubeDL(currentContext(), YoutubeDL.UpdateChannel.STABLE)
+      }
+      true
+    }
+  }
+
+  private fun <T> runOnWorker(task: () -> T): T {
+    val future: Future<T> = worker.submit(task)
+    return try {
+      future.get(200, TimeUnit.SECONDS)
+    } catch (e: ExecutionException) {
+      throw (e.cause ?: e)
     }
   }
 

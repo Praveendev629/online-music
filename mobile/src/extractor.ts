@@ -17,10 +17,26 @@ async function getNativeModule(): Promise<any> {
 export const hasNativeExtractor = async (): Promise<boolean> =>
   (await getNativeModule()) != null;
 
+export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)), ms);
+    promise.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
 /**
  * Your signed-in YouTube session cookies (Netscape cookies.txt format) are read
- * from EXPO_PUBLIC_YOUTUBE_COOKIE (set via a local .env file or an EAS secret)
- * and handed to yt-dlp so extraction bypasses YouTube's bot checks.
+ * from EXPO_PUBLIC_YOUTUBE_COOKIE (set via a local .env file or an EAS
+ * environment variable) and handed to yt-dlp so extraction bypasses bot checks.
  */
 export async function configureNativeCookies(): Promise<void> {
   const native = await getNativeModule();
@@ -35,9 +51,8 @@ export async function configureNativeCookies(): Promise<void> {
 }
 
 /**
- * Kick off the expensive one-time initialization (extracting bundled Python +
- * yt-dlp and refreshing to the latest STABLE binary) right at app launch so it
- * never stalls your first search or playback.
+ * Kick off the cheap one-time init (extracting bundled Python + yt-dlp) right
+ * at launch so the first search/playback is not slow. Downloads nothing.
  */
 export async function warmUpNative(): Promise<void> {
   const native = await getNativeModule();
@@ -53,7 +68,7 @@ export async function warmUpNative(): Promise<void> {
 export async function getStreamUrl(videoId: string): Promise<string> {
   const native = await getNativeModule();
   if (native) {
-    return native.extractAudio(videoId);
+    return withTimeout(native.extractAudio(videoId), 180_000, 'Audio extraction');
   }
   return `${API_BASE_URL}/api/stream/${videoId}`;
 }
@@ -61,7 +76,7 @@ export async function getStreamUrl(videoId: string): Promise<string> {
 export async function getDownloadUrl(videoId: string, title: string): Promise<string> {
   const native = await getNativeModule();
   if (native) {
-    return native.extractAudio(videoId);
+    return withTimeout(native.extractAudio(videoId), 180_000, 'Audio extraction');
   }
   return `${API_BASE_URL}/api/download/${videoId}?title=${encodeURIComponent(title)}`;
 }
