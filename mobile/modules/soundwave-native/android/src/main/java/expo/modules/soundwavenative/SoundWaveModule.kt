@@ -1,6 +1,5 @@
 package expo.modules.soundwavenative
 
-import com.yausername.youtubedl_android.UpdateChannel
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import expo.modules.kotlin.modules.Module
@@ -21,7 +20,7 @@ class SoundWaveModule : Module() {
     AsyncFunction("warmUp") {
       ensureInitialized()
       try {
-        YoutubeDL.updateYoutubeDL(currentContext(), UpdateChannel.STABLE)
+        YoutubeDL.updateYoutubeDL(currentContext(), YoutubeDL.UpdateChannel.STABLE)
       } catch (e: Throwable) {
         // non-fatal: the bundled binary still works if the update fails
       }
@@ -35,12 +34,13 @@ class SoundWaveModule : Module() {
     AsyncFunction("setCookies") { cookies: String? ->
       if (cookies.isNullOrBlank()) {
         cookiesFilePath = null
-        return@AsyncFunction true
+        true
+      } else {
+        val file = File(currentContext().noBackupFilesDir, "youtube-cookies.txt")
+        file.writeText(cookies.trim())
+        cookiesFilePath = file.absolutePath
+        true
       }
-      val file = File(currentContext().noBackupFilesDir, "youtube-cookies.txt")
-      file.writeText(cookies.trim())
-      cookiesFilePath = file.absolutePath
-      true
     }
 
     // Returns a directly playable stream URL for the given YouTube id.

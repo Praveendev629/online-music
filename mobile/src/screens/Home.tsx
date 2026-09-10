@@ -1,6 +1,6 @@
 import { Audio } from 'expo-av';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { searchVideos } from '../api/client';
 import { configureNativeCookies, getDownloadUrl, getStreamUrl, warmUpNative } from '../extractor';
 import { colors } from '../theme';
