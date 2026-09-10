@@ -12,7 +12,20 @@ interface Video {
   url: string
 }
 
-const API_BASE_URL = 'http://localhost:3001'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+
+async function fetchStreamError(videoId: string): Promise<string> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/stream/${videoId}`)
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      return data?.error || `Failed to load audio (HTTP ${res.status})`
+    }
+    return 'Failed to load the audio stream. The song may be blocked from streaming.'
+  } catch {
+    return 'Cannot reach the music server. Check that the backend is running.'
+  }
+}
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -29,6 +42,7 @@ function App() {
   const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
   
   const audioRef = useRef<HTMLAudioElement>(null)
 
@@ -132,27 +146,20 @@ function App() {
 
   const handleVideoSelect = (video: Video) => {
     setCurrentVideo(video)
+    setPlaybackError(null)
     setIsPlaying(true)
   }
 
-  const handleDownload = async (video: Video) => {
+  const handleDownload = (video: Video) => {
     if (downloadingIds.has(video.id)) return
     setDownloadingIds(prev => new Set(prev).add(video.id))
     try {
-      const response = await fetch(`${API_BASE_URL}/api/download/${video.id}?title=${encodeURIComponent(video.title)}`)
-      if (!response.ok) throw new Error('Download failed')
-
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = downloadUrl
-      const filename = `${video.title.replace(/[/\\?%*:|"<>]/g, '_')}.mp3`
-      a.download = filename
+      a.href = `${API_BASE_URL}/api/download/${video.id}?title=${encodeURIComponent(video.title)}`
+      a.download = `${video.title.replace(/[/\\?%*:|"<>]/g, '_')}.mp3`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
-      window.URL.revokeObjectURL(downloadUrl)
-
       setDownloadedIds(prev => new Set(prev).add(video.id))
     } catch (err) {
       console.error('Download error:', err)
@@ -344,6 +351,12 @@ function App() {
                     </div>
                   </div>
 
+                  {playbackError && (
+                    <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-300">
+                      {playbackError}
+                    </div>
+                  )}
+
                   {/* Track Position Range Seek Slider */}
                   <div className="relative flex items-center mb-2">
                     <input
@@ -468,12 +481,14 @@ function App() {
         src={currentVideo ? `${API_BASE_URL}/api/stream/${currentVideo.id}` : undefined}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleNext}
-        onLoadStart={() => setIsLoading(true)}
+        onLoadStart={() => { setIsLoading(true); setPlaybackError(null) }}
         onCanPlay={() => setIsLoading(false)}
-        onError={(e) => {
+        onError={async (e) => {
           console.error('Audio load error:', e)
           setIsLoading(false)
           setIsPlaying(false)
+          const message = currentVideo ? await fetchStreamError(currentVideo.id) : 'Failed to load the audio stream.'
+          setPlaybackError(message)
         }}
       />
     </div>
