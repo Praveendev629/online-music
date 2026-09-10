@@ -42,6 +42,7 @@ function App() {
   const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [playbackError, setPlaybackError] = useState<string | null>(null)
   
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -84,13 +85,28 @@ function App() {
     if (!searchQuery.trim()) return
 
     setIsSearching(true)
+    setSearchError(null)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 20000)
     try {
-      const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(searchQuery)}`)
-      const data = await response.json()
-      setVideos(data.videos || [])
+      const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(searchQuery)}`, { signal: controller.signal })
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || `Search failed (HTTP ${response.status})`)
+      }
+      const result = await response.json()
+      setVideos(result.videos || [])
     } catch (error) {
       console.error('Search error:', error)
+      setSearchError(
+        error instanceof DOMException && error.name === 'AbortError'
+          ? 'Search timed out. The backend is slow or unreachable.'
+          : error instanceof Error
+            ? error.message
+            : 'Search failed'
+      )
     } finally {
+      clearTimeout(timeoutId)
       setIsSearching(false)
     }
   }
@@ -227,6 +243,11 @@ function App() {
             <h2 className="text-xl font-semibold mb-4">
               {videos.length > 0 ? `Results (${videos.length})` : 'Search for videos'}
             </h2>
+            {searchError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-300">
+                {searchError}
+              </div>
+            )}
             {isSearching ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
